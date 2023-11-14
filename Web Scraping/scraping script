@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Sep 20 21:36:44 2023
+
+@author: fantacoulibaly
+"""
+# This script is used to web scrape customers reviews on Consumeraffairs website. 
+# The data will be used later on to conduct a sentiment analysis.
+
+#Import the necessary librairies
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import csv
+
+# Lists to store the scraped data
+Dates =[]
+Ratings = []
+Reviews = []
+
+# After examing the website, there are 77 pages of reviews. So, we are going through each page to extract 
+#the information needed.
+
+for page in (1,77):    
+    url = 'https://www.consumeraffairs.com/homeowners/adt.htm?page='+str(page)+'#scroll_to_reviews=true'
+    print(url)
+    
+    Headers = {'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML,like Gecko) Chrome/115.0.0.0 Safari/537.36'}
+    
+    response = requests.get(url, headers=Headers)
+    
+    soup = BeautifulSoup(response.text, 'html.parser')
+    
+    content = soup.find_all('div', class_='rvw__dtls')
+    
+    # Extract the date on which the review was posted
+    dates = soup.find_all('p', class_ ='rvw__rvd-dt')
+    for i in dates:
+        n = i.get_text(strip=True).replace ('Reviewed ', '')
+        #n = i.strip()
+        Dates.append(n)
+    #print(Dates)
+    
+    # Extract the rating given by the customer
+    ratings = soup.find_all('meta')
+    for j in ratings:
+        if j.get('itemprop') =='ratingValue':
+            Ratings.append(j['content'])
+    #print(len(Ratings))
+    #print(Ratings)
+    
+    # Extract the review text
+    reviews = soup.find_all('div', class_ ='rvw__top-text')
+    for k in reviews:
+        m = k.get_text()
+        Reviews.append(m)
+    #print(len(Reviews))
+    #print(Reviews) 
+
+column_dict ={'Review_date':Dates, 'Rating':Ratings, 'Review':Reviews}
+
+cust_review = pd.DataFrame.from_dict(column_dict, orient='index') 
+cust_reviews = cust_review.transpose()
+#print(cust_reviews)    
+#print(len(cust_reviews))
+  
+# Export the data as a csv file    
+cust_reviews.to_csv('Customers_reviews.csv', header=True)
+#print(len(cust_reviews))
+
